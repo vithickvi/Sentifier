@@ -7,7 +7,7 @@ admin.autodiscover()
 
 urlpatterns = [
 	url(r'^admin/', include(admin.site.urls)),
-    url(r'^index/', TemplateView.as_view(template_name='index.html')),
+    url(r'^$', TemplateView.as_view(template_name='index.html')),
     url(r'^results/', TemplateView.as_view(template_name='results.html')),
     url(r'^results1/', TemplateView.as_view(template_name='results1.html')),
     # url(r'^control/', TemplateView.as_view(template_name='control.html')),

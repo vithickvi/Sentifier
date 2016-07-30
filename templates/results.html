@@ -10,74 +10,152 @@
 		<script src="/static/js/jquery.js"></script>
 		<script src="/static/js/bootstrap.min.js"></script>
 		<script src="http://maps.googleapis.com/maps/api/js?sensor=false&extension=.js&output=embed"></script>
+		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 		<script>
-		var cnt=5;
-		var cntmax=6;
-		
+
+		var cnt=1;
+		var max_id=0;
 		var markerMap = {};
+		var map ;
+		var infowindow;
+		var tmpstring="";
+		var pos=0;
+		var neg=0;
+		var neu=0;
 		$(document).ready(function(){
 			$('#search').val(window.localStorage.getItem("searchvalue"));			
 			google.maps.event.addDomListener(window, 'load', gettweets);
+			map = new google.maps.Map(document.getElementById('map-canvas'), { zoom: 2, center: new google.maps.LatLng(13.92, 1.25), mapTypeId: google.maps.MapTypeId.ROADMAP    });    
+			infowindow = new google.maps.InfoWindow(); 
+			
 		});
+
 		function moretweets()
 		{
-			cntmax=cntmax+5;
+			cnt=cnt+1;
+			gettweets();
+			$('#headerup').html(cnt +"00 Tweets Found");
+		}
+
+		function getnewtweets()
+		{
+
+			window.localStorage.setItem("searchvalue",$('#search').val());
+			document.location.reload(true);
+
 			gettweets();
 		}
 		
 		function gettweets()
 		{
+			$('#headerup').html('Loading Tweets...');
 			$('#divLoading').css('display','block');
-			$('#overlay').css('opacity','0.5');
+
+			var settweet="";
+			var headupstr="";
+			var locstr="";
 			
-			
-			var settweet=""
-			cnt=cnt+5;
 			$.ajax({
-				  url: "/fetchresults/",
+				  url: "/fetchresults1/",
 				  type: "POST",
 				  async: false,
 				  dataType: 'json',
-				  data: {csrfmiddlewaretoken: '{{ csrf_token }}',value:$('#search').val(),count:cnt},
+				  data: {csrfmiddlewaretoken: '{{ csrf_token }}',value:$('#search').val(),maxid:max_id},
 				  success: function(data) {
 
-					$('#headcnt').html(data.result.length+" tweets found");
-					var map = new google.maps.Map(document.getElementById('map-canvas'), { zoom: 2, center: new google.maps.LatLng(13.92, 1.25), mapTypeId: google.maps.MapTypeId.ROADMAP    });    
-					var infowindow = new google.maps.InfoWindow();    
+
+					headupstr = data.result.length+" Tweets Found";
+					if (data.result.length > 0)
+					{
+						$('#more').css('display','block');
+					}
+					max_id = data.maxid;
+					pos = data.cnt[0];
+					neg = data.cnt[1];
+					neu = data.cnt[2];
+
+				
+					tmpstring="google.visualization.arrayToDataTable([['Sentiment', 'Score'],['Positive',"+data.cnt[0]+"],['Negative',"+data.cnt[1]+"],['Neutral',"+data.cnt[2]+"],]);";
+					google.charts.load('current', {'packages':['corechart']});
+				    google.charts.setOnLoadCallback(drawChart);
+				      function drawChart() {
+
+				        var data = google.visualization.arrayToDataTable([
+				          ['Sentiment', 'score'],
+				          ['Positive',     pos],
+				          ['Negative',      neg],
+				          ['Neutral',  neu]
+				          
+				        ]);
+
+				        var options = {
+				          title: 'Sentiment Scores',
+				          is3D: true,
+				          colors: ['#00E64D', '#FD7567', '#6991FD']
+				        };
+
+				        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+				        chart.draw(data, options);
+				      }
 					
+
 					$.each(data.result, function(k, v) {
 
-						var myLatlng = new google.maps.LatLng(parseFloat(v[2].split(",")[0]),parseFloat(parseFloat(v[2].split(",")[1])));
-						settweet=settweet+"<p onclick='highlightmap("+k+")' style='color:"+v[1]+";'>"+v[0]+"</p><hr>"
+						if(v[2]!="")
+						{
+							locstr=v[5];
+							var myLatlng = new google.maps.LatLng(parseFloat(v[2].split(",")[0]),parseFloat(parseFloat(v[2].split(",")[1])));
+							var marker = new google.maps.Marker({position: myLatlng,map: map	});
+							 markerMap[ "marker-" + k ] = marker;
+							 marker.setIcon('http://maps.google.com/mapfiles/ms/icons/'+v[1]+'-dot.png') 
+							 google.maps.event.addListener(marker, 'click', (function(marker, k) {        return function() {  
+								infowindow.setContent(v[0] + " : "+v[5]);						   
+								infowindow.open(map, marker);      
+							  }   
+							  })
+							  (marker,k)); 
 
-						 var marker = new google.maps.Marker({position: myLatlng,map: map	});
-						 markerMap[ "marker-" + k ] = marker;
-						 marker.setIcon('http://maps.google.com/mapfiles/ms/icons/'+v[1]+'-dot.png')      
+						}
+						else
+						{
+							locstr="NA";
+							var myLatlng = new google.maps.LatLng(45.049253, -32.356664);
+							var marker = new google.maps.Marker({position: myLatlng,map: map	});
+							 markerMap[ "marker-" + k ] = marker;
+							 marker.setIcon('http://maps.google.com/mapfiles/ms/icons/white-dot.png')
+							 google.maps.event.addListener(marker, 'click', (function(marker, k) {        return function() {  
+								infowindow.setContent(v[0] + " : [ NA ]");						   
+								infowindow.open(map, marker);      
+							  }   
+							  })
+							  (marker,k));  
+						}
 
-						google.maps.event.addListener(marker, 'click', (function(marker, k) {        return function() {  
-							infowindow.setContent(v[0]);						   
-							infowindow.open(map, marker);      
-						  }   
-						  })
-						  (marker,k)); 
 
+						// settweet=settweet+"<div onclick='highlightmap("+k+")' style='color:"+v[1]+";padding-top:5px;'>"+v[0]+"</div><div style='border-bottom:1px solid #ccc;padding-top:5px;padding-bottom:5px;font-size:12px;'> <span style='font-weight: bold;'>@"+v[3]+"</span> , <span style='font-style: normal;'>"+locstr+"</span> score: "+v[6]+" : "+v[4]+"</div>";
+						settweet=settweet+"<div onclick='highlightmap("+k+")' style='color:"+v[1]+";padding-top:5px;'>"+v[0]+"</div><div style='border-bottom:1px solid #ccc;padding-top:5px;padding-bottom:5px;font-size:12px;'> <span style='font-weight: bold;'>@"+v[3]+"</span> , <span style='font-style: normal;'>"+locstr+"</span> <span style='float:right;'>"+v[4]+"</span></div>";
 
 					});
-					$('#tweetlist').html(settweet);
-					/*if (cnt < cntmax)
-						setTimeout(gettweets,5000);*/
+					$('#tweetlist').append(settweet);
+					
 				  }
 					
 				});
-			$('#overlay').css('opacity','100');
-			$('#overlay').css('background-color','#fff');
+			//$('#overlay').css('opacity','100');
+			//$('#overlay').css('background-color','#fff');
+			$('#headerup').html(headupstr);
 			$('#divLoading').css('display','none');
+
 		}
 		function highlightmap(id)
 		{		
 			google.maps.event.trigger(markerMap["marker-"+id], "click");
 		}
 		
+		
+
+
 		</script>
 	</head>
 	<body>
@@ -93,7 +171,7 @@
           <div class="input-group">
            
             <input id="search" type="text" class="form-control" placeholder="What are searching for?">
-            <span onclick="gettweets();return false;" class="input-group-addon"><span class="glyphicon glyphicon-search" ></span> </span>
+            <span onclick="getnewtweets();return false;" class="input-group-addon"><span class="glyphicon glyphicon-search" ></span> </span>
           </div>
         </div>
       </form>
@@ -101,9 +179,7 @@
 </div>
 
 <div id="overlay">
-<div id="divLoading" style="display:none;">
-<img src="/static/img/gears.gif" alt="Loading...." style="width:152px;height:152px;">
-</div>
+
 
 <div class="container-fluid" id="main">
   <div class="row">
@@ -113,18 +189,22 @@
      
       <!-- item list -->
       <div class="panel panel-default">
-        <div class="panel-heading"><a href="">Tweets</a></div>
+        <div class="panel-heading" ><div id="headerup">Tweets</div></div>
       </div>
+      <div id="divLoading" style="display:block;">
+		<img src="/static/img/gears.gif" alt="Loading...." style="width:152px;height:152px;">
+	  </div>
 	  <div id="tweetlist">
       </div>     
-      <p>
-      <a href="#" onclick="moretweets();return false;" class="center-block btn btn-primary">More..</a>
-      </p>
+      <div id="more" style="display:none;margin-bottom: 30px;margin-top: 37px;position: relative;">
+      		<a href="#" onclick="moretweets();return false;" class="center-block btn btn-primary">More..</a>
+      </div>
+      
     </div>
 	<div style="height:100%;">
 	<div id="map-canvas"></div>
 	<div id="charts">
-	Hello Hello Hello
+	<div id="piechart" style="width: 320px; height: 220px;"></div>
 	</div>
 	</div>
   
