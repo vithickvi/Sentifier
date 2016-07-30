@@ -1,0 +1,110 @@
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Sentifier</title>
+
+    <!-- <script src="/static/js/jquery.js"></script>
+    
+	<script>
+		
+		$( document ).ready(function() {
+
+			$.ajax({
+					  url: "/fetchcontroller/",
+					  type: "POST",
+					  async: false,
+					  dataType: 'json',
+					  data: {csrfmiddlewaretoken: '{{ csrf_token }}'},
+					  success: function(data) {
+					  	
+
+
+					  	alert(data.trendsalldata);
+
+					  }
+
+					});
+		});
+	</script> -->
+</head>
+
+
+<form action="/refresh/" method="post">
+{% csrf_token %}
+                <input type="submit" value="Refresh" name="Refresh Data" style="height:35px;font-size:12pt;">
+
+            </form>
+
+
+
+
+    
+        <p>{{ res}}</p>
+       
+
+
+
+{% if trendhist %}
+    <p>Found {{ trendhist|length }} book{{ trendhist|pluralize }}.</p>
+    <table border="1">
+		<tr bgcolor="#ccc">
+		  <th>Trend1</th>
+		  <th>Trend2</th>
+		  <th>Trend3</th>
+		  <th>Trend4</th>
+		  <th>Trend5</th>
+		  <th>Date</th>
+		  <th>Country</th>
+		</tr>
+		 {% for trend in trendhist %}
+		<tr>
+		  <th> {{ trend.trend1 }}</th>
+		  <th> {{ trend.trend2 }}</th>
+		  <th> {{ trend.trend3 }}</th>
+		  <th> {{ trend.trend4 }}</th>
+		  <th> {{ trend.trend5 }}</th>
+		  <th> {{ trend.date }}</th>
+		  <th> {{ trend.ctry }}</th>
+		</tr> 
+		<tr>
+		  <th> {{ trend.count1 }}</th>
+		  <th> {{ trend.count2 }}</th>
+		  <th> {{ trend.count3 }}</th>
+		  <th> {{ trend.count4 }}</th>
+		  <th> {{ trend.count5 }}</th>
+		  <th> {{ trend.date }}</th>
+		  <th> {{ trend.ctry }}</th>
+		</tr> 
+		{% endfor %}
+	</table>
+
+
+{% else %}
+    <p>No trend matched your search criteria.</p>
+{% endif %}
+
+<form action="/retrive/" method="post">
+{% csrf_token %}
+                <input type="submit" value="Retrive" name="Retrive Tweets " style="height:35px;font-size:12pt;">
+
+            </form>
+
+<body>
+
+   
+
+	
+
+
+
+
+</body>
+
+</html>
